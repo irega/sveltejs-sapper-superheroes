@@ -1,46 +1,58 @@
+<script context="module">
+  import SuperHero from "../models/SuperHero";
+
+  export function preload({ params, query }) {
+    return this.fetch(
+      "https://cdn.rawgit.com/akabab/superhero-api/0.2.0/api/all.json"
+    )
+      .then(response => response.json())
+      .then(data => {
+        const superheroes = data.map(
+          s => new SuperHero(s.id, s.name, s.images.sm)
+        );
+        return { superheroes, originalSuperHeroes: superheroes };
+      });
+  }
+</script>
+
+<script>
+  import { onMount } from "svelte";
+  import SuperHeroList from "../components/Search/SuperHeroList.svelte";
+  import Filters from "../components/Search/Filters.svelte";
+  import * as sapper from "@sapper/app";
+  const { session } = sapper.stores();
+
+  export let superheroes, originalSuperHeroes;
+  let nameFilter = "";
+
+  onMount(() => {
+    if ($session && $session.superheroes) {
+      superheroes = originalSuperHeroes = $session.superheroes;
+    } else {
+      session.set({ superheroes });
+    }
+  });
+
+  $: {
+    if (nameFilter) {
+      superheroes = originalSuperHeroes.filter(
+        os => os.name.toUpperCase().indexOf(nameFilter.toUpperCase()) !== -1
+      );
+    } else {
+      superheroes = originalSuperHeroes;
+    }
+  }
+</script>
+
 <style>
-	h1, figure, p {
-		text-align: center;
-		margin: 0 auto;
-	}
 
-	h1 {
-		font-size: 2.8em;
-		text-transform: uppercase;
-		font-weight: 700;
-		margin: 0 0 0.5em 0;
-	}
-
-	figure {
-		margin: 0 0 1em 0;
-	}
-
-	img {
-		width: 100%;
-		max-width: 400px;
-		margin: 0 0 1em 0;
-	}
-
-	p {
-		margin: 1em auto;
-	}
-
-	@media (min-width: 480px) {
-		h1 {
-			font-size: 4em;
-		}
-	}
 </style>
 
 <svelte:head>
-	<title>Sapper project template</title>
+  <title>Svelte Sapper SuperHeroes</title>
 </svelte:head>
 
-<h1>Great success!</h1>
-
-<figure>
-	<img alt='Borat' src='great-success.png'>
-	<figcaption>HIGH FIVE!</figcaption>
-</figure>
-
-<p><strong>Try editing this file (src/routes/index.svelte) to test live reloading.</strong></p>
+<Filters bind:name={nameFilter} name={nameFilter} />
+<SuperHeroList
+  {superheroes}
+  on:superHeroSelected={event => sapper.goto(event.detail.id)} />
